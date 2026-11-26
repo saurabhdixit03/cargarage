@@ -1,0 +1,42 @@
+# ---------- Java / Maven (backend) ----------
+target/
+*.class
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+*.log
+hs_err_pid*
+
+# Local config with secrets (we'll use environment variables instead)
+application-local.properties
+application-local.yml
+
+# Files uploaded through the app
+uploads/
+
+# ---------- Node / React (frontend) ----------
+node_modules/
+dist/
+build/
+npm-debug.log*
+
+# ---------- Environment files ----------
+.env
+.env.*
+!.env.example
+
+# ---------- IDEs ----------
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.settings/
+.project
+.classpath
+.metadata/
+.factorypath
+
+# ---------- OS ----------
+Thumbs.db
+desktop.ini
+.DS_Store
