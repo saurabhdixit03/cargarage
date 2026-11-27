@@ -14,6 +14,9 @@ public record AppointmentResponse(
         AppointmentStatus status,
         CarResponse car,
         List<Item> items,
+        BigDecimal subtotal,
+        String discountName,
+        BigDecimal discountAmount,
         BigDecimal totalAmount
 ) {
 
@@ -26,12 +29,27 @@ public record AppointmentResponse(
     }
 
     public static AppointmentResponse from(Appointment appointment) {
+        BigDecimal subtotal = subtotalOf(appointment);
         return new AppointmentResponse(
                 appointment.getId(),
                 appointment.getAppointmentDate(),
                 appointment.getStatus(),
                 CarResponse.from(appointment.getCar()),
                 appointment.getItems().stream().map(Item::from).toList(),
+                subtotal,
+                discountNameOf(appointment),
+                subtotal.subtract(appointment.getTotalAmount()),
                 appointment.getTotalAmount());
+    }
+
+    // Not stored in the database: it can always be worked out from the booked item prices
+    static BigDecimal subtotalOf(Appointment appointment) {
+        return appointment.getItems().stream()
+                .map(AppointmentItem::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    static String discountNameOf(Appointment appointment) {
+        return appointment.getDiscount() == null ? null : appointment.getDiscount().getName();
     }
 }

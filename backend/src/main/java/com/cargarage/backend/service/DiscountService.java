@@ -2,6 +2,7 @@ package com.cargarage.backend.service;
 
 import com.cargarage.backend.dto.request.DiscountRequest;
 import com.cargarage.backend.dto.response.DiscountResponse;
+import com.cargarage.backend.entity.AppointmentItem;
 import com.cargarage.backend.entity.Discount;
 import com.cargarage.backend.entity.GarageService;
 import com.cargarage.backend.entity.enums.CustomerType;
@@ -15,10 +16,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +33,10 @@ public class DiscountService {
     private final DiscountRepository discountRepository;
     private final GarageServiceRepository garageServiceRepository;
     private final CustomerRepository customerRepository;
+
+    // A discount chosen for a booking, and how much money it takes off
+    public record AppliedDiscount(Discount discount, BigDecimal amount) {
+    }
 
     // Admin view: every discount, the ones that run longest first
     @Transactional(readOnly = true)
@@ -50,6 +58,33 @@ public class DiscountService {
                 .toList();
     }
 
+    // The offer that saves the most money on these items, if any applies.
+    // Called from inside the booking's transaction, so it needs no @Transactional of its own.
+    public Optional<AppliedDiscount> findBestDiscount(CustomerType customerType, List<AppointmentItem> items) {
+        return discountRepository.findAvailable(LocalDate.now(), customerType).stream()
+                .map(discount -> new AppliedDiscount(discount, savingFor(discount, items)))
+                .filter(applied -> applied.amount().signum() > 0)
+                .max(Comparator.comparing(AppliedDiscount::amount));
+    }
+
+    // Only the services the discount covers are reduced.
+    // E.g. 20% off Ceramic Coating (15000.00) saves 3000.00; Interior Deep Cleaning in the same booking stays full price.
+    static BigDecimal savingFor(Discount discount, List<AppointmentItem> items) {
+        // Compared by id: our entities don't override equals(), so comparing ids is the safe way
+        Set<Long> coveredServiceIds = discount.getServices().stream()
+                .map(GarageService::getId)
+                .collect(Collectors.toSet());
+
+        BigDecimal coveredTotal = items.stream()
+                .filter(item -> coveredServiceIds.contains(item.getService().getId()))
+                .map(AppointmentItem::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Money is rounded to 2 decimal places, half up (e.g. 2.345 -> 2.35)
+        return coveredTotal.multiply(discount.getPercentage())
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
     @Transactional
     public DiscountResponse create(DiscountRequest request) {
         Discount discount = new Discount();
@@ -64,7 +99,7 @@ public class DiscountService {
         return DiscountResponse.from(discount);
     }
 
-    // Soft delete: bookings will remember which discount they used, so discounts are switched off, never deleted
+    // Soft delete: bookings remember which discount they used, so discounts are switched off, never deleted
     @Transactional
     public DiscountResponse setActive(Long discountId, boolean active) {
         Discount discount = findOrThrow(discountId);

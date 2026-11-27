@@ -17,6 +17,9 @@ public record AdminAppointmentResponse(
         CustomerSummary customer,
         CarResponse car,
         List<AppointmentResponse.Item> items,
+        BigDecimal subtotal,
+        String discountName,
+        BigDecimal discountAmount,
         BigDecimal totalAmount
 ) {
 
@@ -29,6 +32,7 @@ public record AdminAppointmentResponse(
     }
 
     public static AdminAppointmentResponse from(Appointment appointment) {
+        BigDecimal subtotal = AppointmentResponse.subtotalOf(appointment);
         return new AdminAppointmentResponse(
                 appointment.getId(),
                 appointment.getAppointmentDate(),
@@ -36,6 +40,9 @@ public record AdminAppointmentResponse(
                 CustomerSummary.from(appointment.getCustomer()),
                 CarResponse.from(appointment.getCar()),
                 appointment.getItems().stream().map(AppointmentResponse.Item::from).toList(),
+                subtotal,
+                AppointmentResponse.discountNameOf(appointment),
+                subtotal.subtract(appointment.getTotalAmount()),
                 appointment.getTotalAmount());
     }
 }

@@ -6,6 +6,7 @@ import com.cargarage.backend.dto.response.AppointmentResponse;
 import com.cargarage.backend.entity.Appointment;
 import com.cargarage.backend.entity.AppointmentItem;
 import com.cargarage.backend.entity.Car;
+import com.cargarage.backend.entity.Customer;
 import com.cargarage.backend.entity.GarageService;
 import com.cargarage.backend.entity.enums.AppointmentStatus;
 import com.cargarage.backend.exception.BusinessRuleException;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,6 +46,7 @@ public class AppointmentService {
     private final CarRepository carRepository;
     private final CustomerRepository customerRepository;
     private final GarageServiceRepository garageServiceRepository;
+    private final DiscountService discountService;
 
     // READ_COMMITTED: every query sees the latest committed data. So once we hold the car lock,
     // the double-booking check sees any booking another request has just saved.
@@ -63,8 +66,12 @@ public class AppointmentService {
 
         List<GarageService> services = findAvailableServices(request.serviceIds());
 
+        // Loaded, not just referenced, because the discount depends on the customer's type
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer " + customerId + " not found"));
+
         Appointment appointment = new Appointment();
-        appointment.setCustomer(customerRepository.getReferenceById(customerId));
+        appointment.setCustomer(customer);
         appointment.setCar(car);
         appointment.setAppointmentDate(date);
         for (GarageService service : services) {
@@ -74,12 +81,23 @@ public class AppointmentService {
             item.setPrice(service.getPrice());
             appointment.addItem(item);
         }
-        appointment.setTotalAmount(total(appointment));
+
+        // Apply the offer that saves this customer the most, if there is one. The final total is stored,
+        // so later changes to prices or discounts never change what this booking costs.
+        BigDecimal total = subtotal(appointment);
+        Optional<DiscountService.AppliedDiscount> best =
+                discountService.findBestDiscount(customer.getCustomerType(), appointment.getItems());
+        if (best.isPresent()) {
+            appointment.setDiscount(best.get().discount());
+            total = total.subtract(best.get().amount());
+        }
+        appointment.setTotalAmount(total);
 
         // One save: cascade = ALL inserts the items too. Thanks to @Transactional, everything is saved or nothing is.
         return AppointmentResponse.from(appointmentRepository.save(appointment));
     }
 
+    // The booking keeps its prices and discount when it moves to another day
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public AppointmentResponse reschedule(Long customerId, Long appointmentId, RescheduleRequest request) {
         Appointment appointment = findMyAppointmentForUpdate(customerId, appointmentId);
@@ -101,7 +119,7 @@ public class AppointmentService {
         }
 
         appointment.setAppointmentDate(newDate);
-        // A new date needs the garage to confirm again. The booked prices stay the same.
+        // A new date needs the garage to confirm again
         appointment.setStatus(AppointmentStatus.PENDING);
         return AppointmentResponse.from(appointment);
     }
@@ -171,7 +189,7 @@ public class AppointmentService {
                 .toList();
     }
 
-    private BigDecimal total(Appointment appointment) {
+    private BigDecimal subtotal(Appointment appointment) {
         return appointment.getItems().stream()
                 .map(AppointmentItem::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
