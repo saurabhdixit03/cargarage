@@ -1,4 +1,7 @@
-import { Link, NavLink, Outlet } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router'
+import { logout, useSession } from '../../auth/session'
+import { Button, ButtonLink } from '../ui/Button'
 
 // The current page's link is highlighted; NavLink also marks it with aria-current="page" for screen readers
 function navLinkClasses({ isActive }: { isActive: boolean }) {
@@ -9,6 +12,16 @@ function navLinkClasses({ isActive }: { isActive: boolean }) {
 
 // The frame around every page: top bar, the page itself (<Outlet />), footer
 export function AppLayout() {
+  const session = useSession()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    queryClient.clear() // forget data that belonged to this user
+    navigate('/')
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-line bg-header">
@@ -42,6 +55,24 @@ export function AppLayout() {
               Facelift kits
             </NavLink>
           </nav>
+
+          <div className="flex items-center gap-3">
+            {session ? (
+              <>
+                <span className="text-sm text-muted">
+                  {session.name}
+                  {session.role === 'ADMIN' && ' · Admin'}
+                </span>
+                <Button variant="secondary" size="sm" onClick={handleLogout}>
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <ButtonLink to="/login" size="sm">
+                Log in
+              </ButtonLink>
+            )}
+          </div>
         </div>
       </header>
 

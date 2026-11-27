@@ -19,6 +19,18 @@ export type FaceliftKit = {
   imageUrls: string[]
 }
 
+export type Role = 'CUSTOMER' | 'ADMIN'
+
+// What a successful login or sign-up returns
+export type AuthResponse = {
+  token: string
+  tokenType: string
+  expiresInMinutes: number
+  userId: number
+  name: string
+  role: Role
+}
+
 // The backend's error format (RFC 9457 ProblemDetail). "errors" holds field messages for a 400.
 export type ProblemDetail = {
   title?: string

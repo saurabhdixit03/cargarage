@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { AppLayout } from './components/layout/AppLayout'
 import { KitsPage } from './pages/KitsPage'
+import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ServicesPage } from './pages/ServicesPage'
 import { StyleGuide } from './pages/StyleGuide'
@@ -22,6 +23,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route index element={<ServicesPage />} />
             <Route path="facelift-kits" element={<KitsPage />} />
+            <Route path="login" element={<LoginPage />} />
             <Route path="style-guide" element={<StyleGuide />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
