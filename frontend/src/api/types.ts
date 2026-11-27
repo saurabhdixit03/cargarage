@@ -81,6 +81,17 @@ export type Discount = {
   services: { id: number; name: string }[]
 }
 
+// What staff see for a booking: the same fields as Appointment, plus who booked it
+export type AdminAppointment = Appointment & {
+  customer: {
+    id: number
+    name: string
+    email: string
+    mobile: string
+    customerType: CustomerType
+  }
+}
+
 // The backend's error format (RFC 9457 ProblemDetail). "errors" holds field messages for a 400.
 export type ProblemDetail = {
   title?: string

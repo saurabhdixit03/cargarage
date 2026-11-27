@@ -59,6 +59,11 @@ export function AppLayout() {
                 My garage
               </NavLink>
             )}
+            {session?.role === 'ADMIN' && (
+              <NavLink to="/admin" className={navLinkClasses}>
+                Bookings
+              </NavLink>
+            )}
           </nav>
 
           <div className="flex items-center gap-3">

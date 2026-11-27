@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { RequireRole } from './auth/RequireRole'
 import { AppLayout } from './components/layout/AppLayout'
+import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { BookPage } from './pages/BookPage'
 import { KitsPage } from './pages/KitsPage'
 import { LoginPage } from './pages/LoginPage'
@@ -23,7 +24,8 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* No transitions: route changes render at once, together with session changes (see AppLayout's logout) */}
+      <BrowserRouter useTransitions={false}>
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<ServicesPage />} />
@@ -37,6 +39,11 @@ function App() {
               <Route path="my" element={<MyGaragePage />} />
               <Route path="book" element={<BookPage />} />
               <Route path="my/cars" element={<MyCarsPage />} />
+            </Route>
+
+            {/* Garage staff only */}
+            <Route element={<RequireRole role="ADMIN" />}>
+              <Route path="admin" element={<AdminDashboardPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

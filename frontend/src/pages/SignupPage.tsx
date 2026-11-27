@@ -19,7 +19,7 @@ export function SignupPage() {
   // Signing up logs you in, so this also runs right after the account is created:
   // back to the page that sent you to log in, or to My garage
   if (session) {
-    const from = (location.state as { from?: string } | null)?.from ?? (session.role === 'CUSTOMER' ? '/my' : '/')
+    const from = (location.state as { from?: string } | null)?.from ?? (session.role === 'CUSTOMER' ? '/my' : '/admin')
     return <Navigate to={from} replace />
   }
 

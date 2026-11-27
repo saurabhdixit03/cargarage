@@ -24,7 +24,7 @@ export function LoginPage() {
 
   // Once logged in, go back to the page that sent you here (or to your own area)
   if (session) {
-    const from = (location.state as { from?: string } | null)?.from ?? (session.role === 'CUSTOMER' ? '/my' : '/')
+    const from = (location.state as { from?: string } | null)?.from ?? (session.role === 'CUSTOMER' ? '/my' : '/admin')
     return <Navigate to={from} replace />
   }
 
