@@ -2,41 +2,102 @@
 
 [![Backend CI](https://github.com/saurabhdixit03/cargarage/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/saurabhdixit03/cargarage/actions/workflows/backend-ci.yml)
 
-A REST API for a car care and detailing garage. Customers register their cars, book one or more services for a date, and get the best available offer applied automatically. The garage admin manages the service catalogue, accepts and completes bookings, runs discount campaigns and showcases facelift kits for specific car models.
+CarGarage is a booking and management platform for a car care and detailing garage. Customers register their cars, book one or more services for a date and automatically receive the best offer available to them. The garage admin manages the service catalogue, processes bookings, runs discount campaigns and showcases facelift kits for specific car models.
 
-**Status:** the backend is feature-complete, tested and checked by CI on every push. A React frontend is in progress.
+This repository contains the **REST API** (Spring Boot). A web frontend (React) is in development.
+
+## Contents
+
+- [Features](#features)
+- [Business rules](#business-rules)
+- [Booking life cycle](#booking-life-cycle)
+- [Architecture and design](#architecture-and-design)
+- [Domain model](#domain-model)
+- [Tech stack](#tech-stack)
+- [API overview](#api-overview)
+- [Getting started](#getting-started)
+- [Testing](#testing)
+- [Project structure](#project-structure)
+- [Roadmap](#roadmap)
 
 ## Features
 
 **Customers**
-- Register and log in (JWT)
-- Manage their profile, password and cars (licence plates are normalised and unique)
-- Book several services for one car on one date, then reschedule or cancel while the booking is still open
-- See their booking history with the prices and discount that applied at booking time
-- See the offers meant for them, and the facelift kits that fit each of their cars
+- Sign up and log in
+- Manage their profile, password and cars
+- Book several services for one car on one date
+- Reschedule or cancel an open booking
+- View their booking history with the prices and discount applied at booking time
+- See the offers available to them and the facelift kits that fit each of their cars
 
 **Admin**
-- Manage the service catalogue (soft delete)
-- Review bookings by status and move them through their life cycle: accept, reject, complete
-- Create discount campaigns for regular or repeat customers on selected services; each target customer gets an email notification (written to the log for now, see the roadmap)
-- Manage facelift kits with ordered photo links
+- Manage the service catalogue
+- Review bookings by status and accept, reject or complete them
+- Create discount campaigns for regular or repeat customers on selected services, with an email notification to every targeted customer
+- Manage facelift kits with ordered photo galleries
 
-**Public**
-- Browse active services and facelift kits (filter kits by car make and model)
+**Visitors**
+- Browse active services and facelift kits, filtered by car make and model
 
-## Engineering highlights
+## Business rules
 
-- **Stateless JWT security** with Spring Security's OAuth2 Resource Server (HS256), role-based URL rules and JSON 401/403 responses.
-- **No IDOR:** the customer id always comes from the verified token (a `@CurrentUserId` meta-annotation), never from the URL or body. Another customer's car or booking returns 404, exactly like a missing one.
-- **No double bookings:** a pessimistic row lock on the car (`SELECT ... FOR UPDATE`) with `READ COMMITTED` isolation serialises concurrent bookings for the same car and day.
-- **Booking state machine:** `PENDING → ACCEPTED → COMPLETED`, `PENDING → REJECTED`, `PENDING/ACCEPTED → CANCELLED`, with row locks so customer and admin actions can't overwrite each other.
-- **Snapshots:** each booked item stores its price, and each booking stores its final total, so later price or offer changes never alter past bookings.
-- **Best-offer selection:** every eligible offer is evaluated and the one that saves the customer the most money wins (`BigDecimal`, rounded half up).
-- **Repeat customers:** a customer becomes REPEAT only after a completed visit, so booking and cancelling can't earn loyalty offers.
-- **Async, after-commit notifications:** discount emails are sent through `@TransactionalEventListener(AFTER_COMMIT)` and `@Async`, behind an `EmailSender` interface, so a slow mail server never slows or breaks the admin's request.
-- **N+1 queries removed** with `@EntityGraph` (the booking list went from 7 queries to 1).
-- **Consistent errors:** RFC 9457 `ProblemDetail` responses, with field-level messages for validation errors.
-- **Testable time:** an injected `Clock` (Asia/Kolkata) instead of `LocalDate.now()`.
+**Bookings**
+- A booking is for one car, one date and 1 to 10 services.
+- Dates can be chosen from tomorrow up to 60 days ahead.
+- A car can have only one open booking (pending or accepted) per day.
+- Each booked service keeps the price it had at booking time, and the booking keeps its final total, so later price or offer changes never affect existing bookings.
+- Customers can reschedule or cancel a booking only while it's pending or accepted, and only before the appointment day. A rescheduled booking returns to pending for the garage to confirm.
+
+**Customers and offers**
+- New customers are **regular**. A customer becomes a **repeat** customer after their first completed visit.
+- Each offer targets either regular or repeat customers, covers selected services and has an end date.
+- When a booking is made, every offer available to the customer is evaluated and the one that **saves the most money** is applied. An offer only reduces the price of the services it covers.
+
+**Catalogue**
+- Services, offers and facelift kits are deactivated rather than deleted, so booking history always stays intact.
+- Licence plates are stored in a normalised form (`mh 12-ab 1234` → `MH12AB1234`) and must be unique.
+
+## Booking life cycle
+
+```
+           accept               complete
+PENDING ──────────▶ ACCEPTED ──────────▶ COMPLETED    (the customer becomes a repeat customer)
+   │                    │
+   │ reject             │ cancel (customer)
+   ▼                    ▼
+REJECTED            CANCELLED          (a pending booking can also be cancelled)
+```
+
+Each action is allowed only from the status shown. Completing is allowed on or after the appointment day.
+
+## Architecture and design
+
+The API follows a layered design: **controllers** (HTTP and validation) → **services** (business rules and transactions) → **repositories** (Spring Data JPA) → MySQL. Requests and responses use immutable DTO records, so entities are never exposed directly.
+
+- **Authentication:** stateless JWT (HS256) using Spring Security's OAuth2 Resource Server support. Passwords are hashed with BCrypt.
+- **Authorization:** role-based URL rules (`ADMIN`, `CUSTOMER`) and consistent JSON responses for 401 and 403.
+- **Ownership:** customer endpoints live under `/api/customers/me/...`, and the customer id is always taken from the verified token through a `@CurrentUserId` annotation, never from the URL or request body. Requests for another customer's data return 404.
+- **Concurrency:** bookings take a pessimistic lock on the car row (`SELECT ... FOR UPDATE`) under `READ COMMITTED` isolation, so two simultaneous requests can't book the same car on the same day. Status changes lock the booking row, so customer and admin actions on the same booking never overwrite each other.
+- **Events:** creating an offer publishes an application event. A listener sends the notifications on a background thread, and only after the transaction commits (`@TransactionalEventListener` + `@Async`), so the admin's request never waits for email delivery. Email goes through an `EmailSender` interface, so the delivery channel can change without touching business code.
+- **Query efficiency:** list endpoints load related data with `@EntityGraph`, so each list is fetched in a single query instead of one query per row.
+- **Errors:** every error is an RFC 9457 `ProblemDetail` (`application/problem+json`), with field-level messages for validation failures.
+- **Time:** an injected `Clock` set to Asia/Kolkata defines "today" for all date rules, which keeps them consistent on any server and testable.
+- **Configuration:** all secrets and connection settings come from environment variables; none are stored in the repository.
+
+## Domain model
+
+| Entity | Description |
+|---|---|
+| Customer | Name, unique email, mobile, password hash, customer type (regular or repeat) |
+| Admin | Garage staff account |
+| Car | Make, model, colour, unique licence plate; belongs to a customer |
+| GarageService | Catalogue entry with name, description, price and active flag |
+| Appointment | A booking: customer, car, date, status, applied discount and final total |
+| AppointmentItem | One booked service with its price at booking time |
+| Discount | Percentage offer for a customer type, valid until a date, covering selected services |
+| FaceliftKit | Body or styling kit for a car make and model, with an ordered list of photos |
+
+Money is stored as `DECIMAL(10,2)` and handled as `BigDecimal`. Every table records `created_at` and `updated_at` automatically.
 
 ## Tech stack
 
@@ -48,7 +109,7 @@ A REST API for a car care and detailing garage. Customers register their cars, b
 | Validation and errors | Jakarta Bean Validation, ProblemDetail (RFC 9457) |
 | Testing | JUnit 5, Mockito, AssertJ, MockMvc, Spring Security Test |
 | Build and CI | Maven (wrapper), GitHub Actions with a MySQL service container |
-| Frontend (in progress) | React, Vite |
+| Frontend (in development) | React, Vite |
 
 ## API overview
 
@@ -69,7 +130,7 @@ A REST API for a car care and detailing garage. Customers register their cars, b
 | Discounts | `GET /api/customers/me/discounts` | Customer |
 | | `GET, POST /api/admin/discounts`, `PUT /api/admin/discounts/{id}`, `PATCH /api/admin/discounts/{id}/active?value=` | Admin |
 
-Errors use `application/problem+json`. A validation error looks like this:
+Authenticated requests send the token as `Authorization: Bearer <token>`. Example validation error:
 
 ```json
 {
@@ -82,6 +143,63 @@ Errors use `application/problem+json`. A validation error looks like this:
   }
 }
 ```
+
+## Getting started
+
+**Prerequisites:** Java 17 and MySQL 8 or newer.
+
+**1. Create the database and an application user** (as the MySQL root user):
+
+```sql
+CREATE DATABASE cargarage_db;
+CREATE USER 'cargarage_app'@'localhost' IDENTIFIED BY 'choose-a-strong-password';
+GRANT ALL PRIVILEGES ON cargarage_db.* TO 'cargarage_app'@'localhost';
+```
+
+**2. Set the environment variables:**
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `DB_PASSWORD` | Yes | | Password of the database user |
+| `JWT_SECRET` | Yes | | Base64 of at least 32 random bytes, used to sign tokens |
+| `DB_URL` | No | `jdbc:mysql://localhost:3306/cargarage_db` | JDBC URL |
+| `DB_USERNAME` | No | `cargarage_app` | Database user |
+| `JWT_EXPIRY_MINUTES` | No | `60` | Token lifetime |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | No | | Creates the first admin account on start-up if none exists |
+
+Generate a `JWT_SECRET` with either of these:
+
+```bash
+openssl rand -base64 32
+```
+
+```powershell
+$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
+```
+
+**3. Start the API:**
+
+```bash
+cd backend
+./mvnw spring-boot:run        # on Windows: .\mvnw.cmd spring-boot:run
+```
+
+The API runs at `http://localhost:8080`. The database tables are created automatically on first start (`ddl-auto=update`, intended for local development).
+
+## Testing
+
+```bash
+cd backend
+./mvnw test
+```
+
+| Level | What it covers |
+|---|---|
+| Unit tests (JUnit 5, Mockito) | Discount calculation and best-offer selection; the booking state machine and date rules, using a fixed `Clock` |
+| Web layer tests (`@WebMvcTest`) | Requests through the real security configuration: 401 without a token, 403 for the wrong role, customer id taken from the token, 400 with field errors, 404 for another customer's car |
+| Application test | The full application context starting against MySQL |
+
+The application test needs `DB_PASSWORD` and `JWT_SECRET`. GitHub Actions runs the whole suite on every push against a temporary MySQL 8.4 container.
 
 ## Project structure
 
@@ -99,74 +217,15 @@ cargarage/
 │       ├── repository/          Spring Data repositories
 │       ├── security/            JWT tokens, roles, @CurrentUserId
 │       └── service/             business logic
-├── frontend/                    React app (in progress)
-└── .github/workflows/           CI
+├── frontend/                    React web app (in development)
+└── .github/workflows/           continuous integration
 ```
-
-## Running locally
-
-**Prerequisites:** Java 17 and MySQL 8 or newer.
-
-**1. Create the database and an application user** (as the MySQL root user):
-
-```sql
-CREATE DATABASE cargarage_db;
-CREATE USER 'cargarage_app'@'localhost' IDENTIFIED BY 'choose-a-strong-password';
-GRANT ALL PRIVILEGES ON cargarage_db.* TO 'cargarage_app'@'localhost';
-```
-
-**2. Set the environment variables.** Configuration comes only from environment variables; no secrets are stored in the repository.
-
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `DB_PASSWORD` | Yes | | Password of the database user |
-| `JWT_SECRET` | Yes | | Base64 of at least 32 random bytes, used to sign tokens |
-| `DB_URL` | No | `jdbc:mysql://localhost:3306/cargarage_db` | JDBC URL |
-| `DB_USERNAME` | No | `cargarage_app` | Database user |
-| `JWT_EXPIRY_MINUTES` | No | `60` | Token lifetime |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | No | | Creates the first admin on start-up, only if no admin exists yet |
-
-To generate a `JWT_SECRET`:
-
-```bash
-openssl rand -base64 32
-```
-
-```powershell
-$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
-```
-
-**3. Start the API:**
-
-```bash
-cd backend
-./mvnw spring-boot:run        # on Windows: .\mvnw.cmd spring-boot:run
-```
-
-The API runs on `http://localhost:8080`. Hibernate creates the tables on first start (`ddl-auto=update`, intended for local development).
-
-## Running the tests
-
-```bash
-cd backend
-./mvnw test
-```
-
-There are 19 tests at three levels:
-
-| Level | What it covers |
-|---|---|
-| Unit tests (JUnit 5, Mockito) | Discount calculation and best-offer choice, the booking state machine and date rules with a fixed `Clock` |
-| Web slice tests (`@WebMvcTest`) | Requests through the real security rules: 401 without a token, 403 for the wrong role, the customer id taken from the token, 400 with field errors, 404 for another customer's car |
-| Full context | The whole application starts against a real MySQL |
-
-The full-context test needs the database variables (`DB_PASSWORD`, `JWT_SECRET`). GitHub Actions runs all tests on every push against a temporary MySQL 8.4 container.
 
 ## Roadmap
 
-- React frontend (Vite)
-- Real email delivery behind the existing `EmailSender` interface
-- Deployment, with production-grade schema management
+- React web frontend
+- Email delivery through an SMTP provider (the notification flow is in place; messages are currently written to the application log)
+- Cloud deployment with versioned database migrations
 
 ## Author
 
