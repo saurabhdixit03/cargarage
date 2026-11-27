@@ -21,6 +21,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Appointment> findLockedByIdAndCustomerId(Long id, Long customerId);
 
+    // For admin actions: the admin may open any booking, so there's no customer filter
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Appointment> findLockedById(Long id);
+
     boolean existsByCarIdAndAppointmentDateAndStatusIn(Long carId, LocalDate appointmentDate,
                                                        Collection<AppointmentStatus> statuses);
 
