@@ -1,5 +1,6 @@
 import { useMyAppointments, useMyCars, useMyOffers, useMyProfile } from '../api/customer'
 import { Alert } from '../components/ui/Alert'
+import { ButtonLink } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusBadge } from '../components/ui/StatusBadge'
@@ -34,11 +35,14 @@ export function MyGaragePage() {
             {firstName && `, ${firstName}`}
           </h1>
         </div>
-        {profile.data?.customerType === 'REPEAT' && (
-          <span className="rounded-full border border-accent-line bg-accent-soft px-3.5 py-1.5 text-sm font-semibold text-accent">
-            Repeat customer
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {profile.data?.customerType === 'REPEAT' && (
+            <span className="rounded-full border border-accent-line bg-accent-soft px-3.5 py-1.5 text-sm font-semibold text-accent">
+              Repeat customer
+            </span>
+          )}
+          <ButtonLink to="/book">Book a service</ButtonLink>
+        </div>
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-5">

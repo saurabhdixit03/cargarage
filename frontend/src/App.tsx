@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { RequireRole } from './auth/RequireRole'
 import { AppLayout } from './components/layout/AppLayout'
+import { BookPage } from './pages/BookPage'
 import { KitsPage } from './pages/KitsPage'
 import { LoginPage } from './pages/LoginPage'
 import { MyGaragePage } from './pages/MyGaragePage'
@@ -31,6 +32,7 @@ function App() {
             {/* Customers only */}
             <Route element={<RequireRole role="CUSTOMER" />}>
               <Route path="my" element={<MyGaragePage />} />
+              <Route path="book" element={<BookPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
