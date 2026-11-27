@@ -1,6 +1,7 @@
 package com.cargarage.backend.controller;
 
 import com.cargarage.backend.dto.request.BookAppointmentRequest;
+import com.cargarage.backend.dto.request.RescheduleRequest;
 import com.cargarage.backend.dto.response.AppointmentResponse;
 import com.cargarage.backend.service.AppointmentService;
 import jakarta.validation.Valid;
@@ -41,6 +42,20 @@ public class CustomerAppointmentController {
     public AppointmentResponse getMyAppointment(@AuthenticationPrincipal Jwt jwt,
                                                 @PathVariable Long appointmentId) {
         return appointmentService.getMyAppointment(customerId(jwt), appointmentId);
+    }
+
+    // Action endpoints: the client asks for an action, and the server decides the new status.
+    // A client can never just send "status": "COMPLETED".
+    @PostMapping("/{appointmentId}/reschedule")
+    public AppointmentResponse reschedule(@AuthenticationPrincipal Jwt jwt,
+                                          @PathVariable Long appointmentId,
+                                          @Valid @RequestBody RescheduleRequest request) {
+        return appointmentService.reschedule(customerId(jwt), appointmentId, request);
+    }
+
+    @PostMapping("/{appointmentId}/cancel")
+    public AppointmentResponse cancel(@AuthenticationPrincipal Jwt jwt, @PathVariable Long appointmentId) {
+        return appointmentService.cancel(customerId(jwt), appointmentId);
     }
 
     // Third copy of this helper. Soon we'll replace all three with one shared annotation.

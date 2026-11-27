@@ -2,7 +2,9 @@ package com.cargarage.backend.repository;
 
 import com.cargarage.backend.entity.Appointment;
 import com.cargarage.backend.entity.enums.AppointmentStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -11,22 +13,24 @@ import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
-    // A customer's booking history, newest first
     List<Appointment> findByCustomerIdOrderByAppointmentDateDesc(Long customerId);
 
-    // Ownership check: returns the booking only if it belongs to this customer
     Optional<Appointment> findByIdAndCustomerId(Long id, Long customerId);
 
-    // Double-booking check: does this car already have an active booking on this date?
-    boolean existsByCarIdAndAppointmentDateAndStatusIn(
-            Long carId, LocalDate appointmentDate, Collection<AppointmentStatus> statuses);
+    // For changes: locks the booking row (SELECT ... FOR UPDATE) until the transaction ends
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Appointment> findLockedByIdAndCustomerId(Long id, Long customerId);
 
-    // Used to mark a customer as REPEAT once they have booked before
-    long countByCustomerId(Long customerId);
+    boolean existsByCarIdAndAppointmentDateAndStatusIn(Long carId, LocalDate appointmentDate,
+                                                       Collection<AppointmentStatus> statuses);
 
-    // A car that has bookings can't be deleted
+    // Same check, but ignores one booking: the one being rescheduled
+    boolean existsByCarIdAndAppointmentDateAndStatusInAndIdNot(Long carId, LocalDate appointmentDate,
+                                                                Collection<AppointmentStatus> statuses, Long id);
+
     boolean existsByCarId(Long carId);
 
-    // Admin dashboard: e.g. all PENDING bookings, earliest first
+    long countByCustomerId(Long customerId);
+
     List<Appointment> findByStatusOrderByAppointmentDateAsc(AppointmentStatus status);
 }
