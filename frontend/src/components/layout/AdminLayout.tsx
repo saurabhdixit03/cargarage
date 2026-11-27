@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router'
 const sections = [
   { to: '/admin', label: 'Bookings', end: true },
   { to: '/admin/services', label: 'Services', end: false },
+  { to: '/admin/offers', label: 'Offers', end: false },
 ]
 
 // The staff area: a row of section tabs above every staff page.

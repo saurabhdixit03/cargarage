@@ -4,6 +4,7 @@ import { RequireRole } from './auth/RequireRole'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { AppLayout } from './components/layout/AppLayout'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
+import { AdminOffersPage } from './pages/AdminOffersPage'
 import { AdminServicesPage } from './pages/AdminServicesPage'
 import { BookPage } from './pages/BookPage'
 import { KitsPage } from './pages/KitsPage'
@@ -48,6 +49,7 @@ function App() {
               <Route path="admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="services" element={<AdminServicesPage />} />
+                <Route path="offers" element={<AdminOffersPage />} />
               </Route>
             </Route>
 
