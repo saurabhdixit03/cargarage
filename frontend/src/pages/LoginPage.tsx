@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { useLogin } from '../api/auth'
 import { ApiError } from '../api/client'
 import type { Role } from '../api/types'
@@ -95,6 +95,13 @@ export function LoginPage() {
           </Button>
         </form>
       </Card>
+
+      <p className="text-center text-sm text-muted">
+        New to CarGarage?{' '}
+        <Link to="/signup" state={location.state} className="font-semibold text-accent hover:underline">
+          Create an account
+        </Link>
+      </p>
     </section>
   )
 }

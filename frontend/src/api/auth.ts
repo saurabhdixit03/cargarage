@@ -25,3 +25,23 @@ export function useLogin() {
     onSuccess: saveLogin,
   })
 }
+
+export type SignupInput = {
+  name: string
+  email: string
+  mobile: string
+  password: string
+}
+
+// Creates a customer account. The backend answers just like a login (with a token),
+// so saving that answer logs the new customer in straight away.
+export function useSignup() {
+  return useMutation({
+    mutationFn: (input: SignupInput) =>
+      apiFetch<AuthResponse>('/auth/customers/register', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: saveLogin,
+  })
+}

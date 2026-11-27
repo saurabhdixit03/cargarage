@@ -9,6 +9,7 @@ import { MyCarsPage } from './pages/MyCarsPage'
 import { MyGaragePage } from './pages/MyGaragePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { SignupPage } from './pages/SignupPage'
 import { StyleGuide } from './pages/StyleGuide'
 
 // One cache for all server data. Data counts as fresh for 1 minute; a failed request is retried once.
@@ -28,6 +29,7 @@ function App() {
             <Route index element={<ServicesPage />} />
             <Route path="facelift-kits" element={<KitsPage />} />
             <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
             <Route path="style-guide" element={<StyleGuide />} />
 
             {/* Customers only */}

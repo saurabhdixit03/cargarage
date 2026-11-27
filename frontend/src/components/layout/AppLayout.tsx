@@ -73,9 +73,14 @@ export function AppLayout() {
                 </Button>
               </>
             ) : (
-              <ButtonLink to="/login" size="sm">
-                Log in
-              </ButtonLink>
+              <>
+                <ButtonLink to="/login" variant="ghost" size="sm">
+                  Log in
+                </ButtonLink>
+                <ButtonLink to="/signup" size="sm">
+                  Sign up
+                </ButtonLink>
+              </>
             )}
           </div>
         </div>
