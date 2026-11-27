@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,6 +23,7 @@ import java.util.List;
 public class AdminAppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final Clock clock;
 
     // No status means every booking. Oldest date first, so the next jobs are on top.
     @Transactional(readOnly = true)
@@ -43,7 +45,7 @@ public class AdminAppointmentService {
     public AdminAppointmentResponse accept(Long appointmentId) {
         Appointment appointment = findForUpdate(appointmentId);
         requireStatus(appointment, AppointmentStatus.PENDING, "accepted");
-        if (appointment.getAppointmentDate().isBefore(LocalDate.now())) {
+        if (appointment.getAppointmentDate().isBefore(LocalDate.now(clock))) {
             throw new BusinessRuleException("This booking's date has already passed");
         }
         appointment.setStatus(AppointmentStatus.ACCEPTED);
@@ -64,7 +66,7 @@ public class AdminAppointmentService {
     public AdminAppointmentResponse complete(Long appointmentId) {
         Appointment appointment = findForUpdate(appointmentId);
         requireStatus(appointment, AppointmentStatus.ACCEPTED, "completed");
-        if (appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+        if (appointment.getAppointmentDate().isAfter(LocalDate.now(clock))) {
             throw new BusinessRuleException("A booking can't be completed before its appointment day");
         }
         appointment.setStatus(AppointmentStatus.COMPLETED);

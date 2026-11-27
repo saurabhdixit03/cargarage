@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -47,6 +48,7 @@ public class AppointmentService {
     private final CustomerRepository customerRepository;
     private final GarageServiceRepository garageServiceRepository;
     private final DiscountService discountService;
+    private final Clock clock;
 
     // READ_COMMITTED: every query sees the latest committed data. So once we hold the car lock,
     // the double-booking check sees any booking another request has just saved.
@@ -158,13 +160,13 @@ public class AppointmentService {
             throw new BusinessRuleException("A " + appointment.getStatus().name().toLowerCase()
                     + " booking can't be " + action);
         }
-        if (!appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+        if (!appointment.getAppointmentDate().isAfter(LocalDate.now(clock))) {
             throw new BusinessRuleException("Bookings can only be " + action + " before the appointment day");
         }
     }
 
     private void checkNotTooFarAhead(LocalDate date) {
-        if (date.isAfter(LocalDate.now().plusDays(MAX_DAYS_AHEAD))) {
+        if (date.isAfter(LocalDate.now(clock).plusDays(MAX_DAYS_AHEAD))) {
             throw new FieldValidationException("appointmentDate",
                     "You can book at most " + MAX_DAYS_AHEAD + " days ahead");
         }

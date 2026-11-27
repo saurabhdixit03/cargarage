@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ public class DiscountService {
     private final GarageServiceRepository garageServiceRepository;
     private final CustomerRepository customerRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     // A discount chosen for a booking, and how much money it takes off
     public record AppliedDiscount(Discount discount, BigDecimal amount) {
@@ -56,7 +58,7 @@ public class DiscountService {
         CustomerType type = customerRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer " + customerId + " not found"))
                 .getCustomerType();
-        return discountRepository.findAvailable(LocalDate.now(), type).stream()
+        return discountRepository.findAvailable(LocalDate.now(clock), type).stream()
                 .map(DiscountResponse::from)
                 .toList();
     }
@@ -64,7 +66,7 @@ public class DiscountService {
     // The offer that saves the most money on these items, if any applies.
     // Called from inside the booking's transaction, so it needs no @Transactional of its own.
     public Optional<AppliedDiscount> findBestDiscount(CustomerType customerType, List<AppointmentItem> items) {
-        return discountRepository.findAvailable(LocalDate.now(), customerType).stream()
+        return discountRepository.findAvailable(LocalDate.now(clock), customerType).stream()
                 .map(discount -> new AppliedDiscount(discount, savingFor(discount, items)))
                 .filter(applied -> applied.amount().signum() > 0)
                 .max(Comparator.comparing(AppliedDiscount::amount));
