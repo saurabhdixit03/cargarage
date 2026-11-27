@@ -1,9 +1,21 @@
-import { useMyAppointments, useMyCars, useMyOffers, useMyProfile } from '../api/customer'
+import { useState } from 'react'
+import { ApiError } from '../api/client'
+import {
+  useCancelAppointment,
+  useMyAppointments,
+  useMyCars,
+  useMyOffers,
+  useMyProfile,
+  useRescheduleAppointment,
+} from '../api/customer'
+import type { Appointment } from '../api/types'
 import { Alert } from '../components/ui/Alert'
-import { ButtonLink } from '../components/ui/Button'
+import { Button, ButtonLink } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { Field } from '../components/ui/Field'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusBadge } from '../components/ui/StatusBadge'
+import { MAX_DAYS_AHEAD, isoDateFromToday } from '../lib/booking'
 import { formatDate, formatRupees } from '../lib/format'
 
 function greeting(): string {
@@ -45,7 +57,8 @@ export function MyGaragePage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-5">
+      {/* grid-cols-1 = minmax(0, 1fr): lets long lines truncate on phones instead of widening the page */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <h2 className="font-display text-xl font-semibold">Your bookings</h2>
           {bookings.error ? (
@@ -57,15 +70,7 @@ export function MyGaragePage() {
           ) : (
             <ul className="mt-2">
               {bookings.data.map((booking) => (
-                <li key={booking.id} className="flex items-center gap-4 border-b border-line py-3 last:border-b-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{formatDate(booking.appointmentDate)}</p>
-                    <p className="truncate text-sm text-muted">{booking.items.map((item) => item.serviceName).join(', ')}</p>
-                    {booking.discountName && <p className="text-sm text-saving">{booking.discountName} applied</p>}
-                  </div>
-                  <StatusBadge status={booking.status} />
-                  <p className="w-28 text-right font-semibold">{formatRupees(booking.totalAmount)}</p>
-                </li>
+                <BookingRow key={booking.id} booking={booking} />
               ))}
             </ul>
           )}
@@ -127,5 +132,116 @@ export function MyGaragePage() {
         </div>
       </div>
     </section>
+  )
+}
+
+type RowMode = 'view' | 'reschedule' | 'cancel'
+
+// One booking, with "Change date" and "Cancel booking" while it can still be changed
+function BookingRow({ booking }: { booking: Appointment }) {
+  const [mode, setMode] = useState<RowMode>('view')
+  const [newDate, setNewDate] = useState('')
+  const reschedule = useRescheduleAppointment()
+  const cancel = useCancelAppointment()
+
+  // The same rule as AppointmentService: only pending or accepted bookings, and only before their day
+  const changeable =
+    (booking.status === 'PENDING' || booking.status === 'ACCEPTED') && booking.appointmentDate > isoDateFromToday(0)
+
+  const fieldErrors = reschedule.error instanceof ApiError ? reschedule.error.fieldErrors : {}
+  const rescheduleError = reschedule.error && Object.keys(fieldErrors).length === 0 ? reschedule.error.message : null
+
+  function close() {
+    reschedule.reset()
+    cancel.reset()
+    setMode('view')
+  }
+
+  return (
+    <li className="border-b border-line py-3 last:border-b-0">
+      {/* On phones the badge and total wrap onto a second line, so the text keeps its width */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-48">
+          <p className="font-semibold">{formatDate(booking.appointmentDate)}</p>
+          <p className="truncate text-sm text-muted">{booking.items.map((item) => item.serviceName).join(', ')}</p>
+          {booking.discountName && <p className="text-sm text-saving">{booking.discountName} applied</p>}
+        </div>
+        <StatusBadge status={booking.status} />
+        <p className="ml-auto text-right font-semibold sm:w-28">{formatRupees(booking.totalAmount)}</p>
+      </div>
+
+      {mode === 'view' && changeable && (
+        <div className="mt-1 -ml-4 flex flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setNewDate(booking.appointmentDate) // start from the current date
+              setMode('reschedule')
+            }}
+          >
+            Change date
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setMode('cancel')}>
+            Cancel booking
+          </Button>
+        </div>
+      )}
+
+      {mode === 'reschedule' && (
+        <form
+          noValidate
+          className="mt-3 flex flex-col gap-3 rounded-control bg-raised p-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            reschedule.mutate({ id: booking.id, appointmentDate: newDate || null }, { onSuccess: close })
+          }}
+        >
+          <Field
+            label={`New date (from tomorrow up to ${MAX_DAYS_AHEAD} days ahead)`}
+            type="date"
+            autoFocus
+            min={isoDateFromToday(1)}
+            max={isoDateFromToday(MAX_DAYS_AHEAD)}
+            value={newDate}
+            onChange={(event) => setNewDate(event.target.value)}
+            error={fieldErrors.appointmentDate}
+            className="sm:max-w-xs"
+          />
+          <p className="text-sm text-muted">
+            The price and offer stay the same. The garage confirms the new date again, so the booking shows as Pending.
+          </p>
+          {rescheduleError && <Alert>{rescheduleError}</Alert>}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" size="sm" disabled={reschedule.isPending}>
+              {reschedule.isPending ? 'Saving…' : 'Save new date'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={close}>
+              Keep current date
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {mode === 'cancel' && (
+        <div className="mt-3 flex flex-col gap-3 rounded-control bg-raised p-4">
+          <p className="text-sm">Cancel your booking on {formatDate(booking.appointmentDate)}?</p>
+          {cancel.error && <Alert>{cancel.error.message}</Alert>}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate(booking.id, { onSuccess: close })}
+            >
+              {cancel.isPending ? 'Cancelling…' : 'Yes, cancel it'}
+            </Button>
+            <Button variant="ghost" size="sm" autoFocus onClick={close}>
+              Keep booking
+            </Button>
+          </div>
+        </div>
+      )}
+    </li>
   )
 }

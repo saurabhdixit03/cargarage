@@ -59,6 +59,29 @@ export function useBookAppointment() {
   })
 }
 
+// Change the date of a booking. Allowed only for pending or accepted bookings, before their day.
+// The server keeps the price and offer, and sets the booking back to PENDING for the garage to confirm.
+export function useRescheduleAppointment() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: ({ id, appointmentDate }: { id: number; appointmentDate: string | null }) =>
+      apiFetch<Appointment>(`/customers/me/appointments/${id}/reschedule`, {
+        method: 'POST',
+        body: JSON.stringify({ appointmentDate }),
+      }),
+    onSuccess: refreshMe,
+  })
+}
+
+// An action endpoint: the client asks to cancel and the server decides whether that's allowed
+export function useCancelAppointment() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<Appointment>(`/customers/me/appointments/${id}/cancel`, { method: 'POST' }),
+    onSuccess: refreshMe,
+  })
+}
+
 export type CarInput = {
   make: string
   model: string
