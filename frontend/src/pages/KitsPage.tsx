@@ -1,18 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useFaceliftKits } from '../api/catalog'
+import { Alert } from '../components/ui/Alert'
 import { Card } from '../components/ui/Card'
+import { Skeleton } from '../components/ui/Skeleton'
 import { formatRupees } from '../lib/format'
-
-// Same fields as FaceliftKitResponse in the backend
-type FaceliftKit = {
-  id: number
-  kitName: string
-  carMake: string
-  carModel: string
-  description: string
-  price: number
-  active: boolean
-  imageUrls: string[]
-}
 
 // The kit's first photo, or a plain panel if it has none or the photo fails to load
 function KitPhoto({ url, alt }: { url?: string; alt: string }) {
@@ -33,20 +24,7 @@ function KitPhoto({ url, alt }: { url?: string; alt: string }) {
 }
 
 export function KitsPage() {
-  const [kits, setKits] = useState<FaceliftKit[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/facelift-kits')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`)
-        }
-        return response.json() as Promise<FaceliftKit[]>
-      })
-      .then(setKits)
-      .catch((e: Error) => setError(e.message))
-  }, [])
+  const { data: kits, isPending, error } = useFaceliftKits()
 
   return (
     <section>
@@ -54,25 +32,37 @@ export function KitsPage() {
       <h1 className="mt-2 font-display text-4xl font-bold tracking-tight">Facelift kits</h1>
       <p className="mt-2 text-muted">Body kits and styling parts, matched to your car's make and model.</p>
 
-      {error && <p className="mt-6 rounded-control bg-danger-soft p-4 text-danger">Couldn't load kits: {error}</p>}
-
-      <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {kits.map((kit) => (
-          <li key={kit.id}>
-            <Card className="flex h-full flex-col gap-4 p-4">
-              <KitPhoto url={kit.imageUrls[0]} alt={kit.kitName} />
-              <div>
-                <p className="text-xs tracking-widest text-muted uppercase">
-                  {kit.carMake} {kit.carModel}
-                </p>
-                <h2 className="mt-1 font-display text-lg font-semibold">{kit.kitName}</h2>
-                <p className="mt-1 text-sm text-muted">{kit.description}</p>
-              </div>
-              <p className="mt-auto font-display text-xl font-bold text-accent">{formatRupees(kit.price)}</p>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-8">
+        {error ? (
+          <Alert>Couldn't load kits: {error.message}</Alert>
+        ) : isPending ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+          </div>
+        ) : kits.length === 0 ? (
+          <p className="text-muted">No facelift kits are available right now.</p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {kits.map((kit) => (
+              <li key={kit.id}>
+                <Card className="flex h-full flex-col gap-4 p-4">
+                  <KitPhoto url={kit.imageUrls[0]} alt={kit.kitName} />
+                  <div>
+                    <p className="text-xs tracking-widest text-muted uppercase">
+                      {kit.carMake} {kit.carModel}
+                    </p>
+                    <h2 className="mt-1 font-display text-lg font-semibold">{kit.kitName}</h2>
+                    <p className="mt-1 text-sm text-muted">{kit.description}</p>
+                  </div>
+                  <p className="mt-auto font-display text-xl font-bold text-accent">{formatRupees(kit.price)}</p>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   )
 }
