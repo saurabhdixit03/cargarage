@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -45,7 +45,7 @@ public class CatalogService {
         GarageService service = new GarageService();
         service.setName(name);
         service.setDescription(request.description().trim());
-        service.setPrice(request.price());
+        service.setPrice(request.price().setScale(2, RoundingMode.HALF_UP));
 
         return GarageServiceResponse.from(garageServiceRepository.save(service));
     }
@@ -61,7 +61,7 @@ public class CatalogService {
 
         service.setName(name);
         service.setDescription(request.description().trim());
-        service.setPrice(request.price());
+        service.setPrice(request.price().setScale(2, RoundingMode.HALF_UP));
 
         // No save() call needed: changes to a loaded entity are written automatically at commit
         return GarageServiceResponse.from(service);
