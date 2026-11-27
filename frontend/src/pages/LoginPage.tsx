@@ -22,9 +22,9 @@ export function LoginPage() {
   const session = useSession()
   const location = useLocation()
 
-  // Once logged in, go back to the page that sent you here (or home)
+  // Once logged in, go back to the page that sent you here (or to your own area)
   if (session) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/'
+    const from = (location.state as { from?: string } | null)?.from ?? (session.role === 'CUSTOMER' ? '/my' : '/')
     return <Navigate to={from} replace />
   }
 

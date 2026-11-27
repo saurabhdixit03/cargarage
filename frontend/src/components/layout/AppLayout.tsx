@@ -54,6 +54,11 @@ export function AppLayout() {
             <NavLink to="/facelift-kits" className={navLinkClasses}>
               Facelift kits
             </NavLink>
+            {session?.role === 'CUSTOMER' && (
+              <NavLink to="/my" className={navLinkClasses}>
+                My garage
+              </NavLink>
+            )}
           </nav>
 
           <div className="flex items-center gap-3">

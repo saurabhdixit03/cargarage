@@ -1,5 +1,5 @@
-// The same five statuses as AppointmentStatus in the backend
-export type AppointmentStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED'
+// The statuses come from the API types, so the badge always matches the backend
+import type { AppointmentStatus } from '../../api/types'
 
 const statusClasses: Record<AppointmentStatus, string> = {
   PENDING: 'bg-pending-soft text-pending',
