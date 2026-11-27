@@ -4,6 +4,7 @@ const sections = [
   { to: '/admin', label: 'Bookings', end: true },
   { to: '/admin/services', label: 'Services', end: false },
   { to: '/admin/offers', label: 'Offers', end: false },
+  { to: '/admin/kits', label: 'Facelift kits', end: false },
 ]
 
 // The staff area: a row of section tabs above every staff page.
