@@ -29,21 +29,21 @@ function App() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-12">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold text-slate-900">CarGarage</h1>
-        <p className="mt-2 text-slate-600">Our services</p>
+    <main className="min-h-screen px-6 py-12">
+      <div className="mx-auto max-w-5xl">
+        <p className="text-sm tracking-widest text-muted uppercase">Car care and detailing</p>
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight">Our services</h1>
 
         {error && (
-          <p className="mt-6 rounded-md bg-red-50 p-4 text-red-700">Couldn't load services: {error}</p>
+          <p className="mt-6 rounded-control bg-danger-soft p-4 text-danger">Couldn't load services: {error}</p>
         )}
 
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {services.map((service) => (
-            <li key={service.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">{service.name}</h2>
-              <p className="mt-1 text-sm text-slate-600">{service.description}</p>
-              <p className="mt-4 text-xl font-bold text-indigo-600">{rupees.format(service.price)}</p>
+            <li key={service.id} className="rounded-card border border-line bg-surface p-6">
+              <h2 className="font-display text-xl font-semibold">{service.name}</h2>
+              <p className="mt-1 text-sm text-muted">{service.description}</p>
+              <p className="mt-5 font-display text-2xl font-bold text-accent">{rupees.format(service.price)}</p>
             </li>
           ))}
         </ul>

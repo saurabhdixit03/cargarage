@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+/*
+  CarGarage theme: "Showroom Dark".
+  Every colour, font and corner radius of the app is defined once, here.
+  Tailwind turns each token into classes: --color-surface → bg-surface, text-surface, border-surface;
+  --font-display → font-display; --radius-card → rounded-card.
+*/
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* Backgrounds, from darkest to lightest */
+  --color-ground: #0b0e13; /* page background */
+  --color-header: #0f131a; /* top bar, form fields */
+  --color-surface: #141922; /* cards */
+  --color-raised: #1a1f2a; /* selected rows, panels inside cards */
+
+  /* Lines and text */
+  --color-line: #222a38; /* card borders, dividers */
+  --color-line-strong: #2c3546; /* form field borders */
+  --color-ink: #e8ecf3; /* main text */
+  --color-muted: #9aa4b5; /* secondary text */
+
+  /* Accent: amber, for primary actions and highlights */
+  --color-accent: #f5b83d;
+  --color-accent-ink: #15110a; /* text on amber */
+  --color-accent-soft: #1e1a10; /* amber-tinted panels */
+  --color-accent-line: #3a3220;
+
+  /* Meaning */
+  --color-saving: #7ee2a8; /* discounts and savings */
+  --color-danger: #ff9b9b; /* error text */
+  --color-danger-soft: #2a1416; /* error panels */
+
+  /* Booking status badges: text colour + background */
+  --color-pending: #f5c66a;
+  --color-pending-soft: #2b2412;
+  --color-accepted: #8ec1ff;
+  --color-accepted-soft: #14263f;
+  --color-completed: #7ee2a8;
+  --color-completed-soft: #10291d;
+  --color-rejected: #ff9b9b;
+  --color-rejected-soft: #2a1416;
+  --color-cancelled: #a9b2c3;
+  --color-cancelled-soft: #1f2430;
+
+  /* Corners */
+  --radius-card: 16px;
+  --radius-control: 12px;
+}
+
+@layer base {
+  html {
+    /* Native parts (date pickers, scrollbars, checkboxes) are drawn dark too */
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ground font-sans text-ink antialiased;
+  }
+}
