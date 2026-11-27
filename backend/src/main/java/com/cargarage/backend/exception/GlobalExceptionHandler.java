@@ -27,6 +27,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    // 401: wrong email or password
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
     // 409: something that must be unique already exists
     @ExceptionHandler(DuplicateResourceException.class)
     public ProblemDetail handleDuplicate(DuplicateResourceException ex) {
