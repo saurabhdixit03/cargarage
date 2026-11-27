@@ -11,4 +11,7 @@ public interface GarageServiceRepository extends JpaRepository<GarageService, Lo
     List<GarageService> findByActiveTrueOrderByNameAsc();
 
     boolean existsByName(String name);
+
+    // On update: is this name used by a DIFFERENT service?
+    boolean existsByNameAndIdNot(String name, Long id);
 }
