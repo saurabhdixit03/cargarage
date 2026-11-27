@@ -73,7 +73,12 @@ export function MyGaragePage() {
 
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card>
-            <h2 className="font-display text-xl font-semibold">Your cars</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl font-semibold">Your cars</h2>
+              <ButtonLink to="/my/cars" variant="ghost" size="sm" className="-my-2">
+                Manage
+              </ButtonLink>
+            </div>
             {cars.error ? (
               <div className="mt-4"><Alert>Couldn't load your cars: {cars.error.message}</Alert></div>
             ) : cars.isPending ? (

@@ -5,6 +5,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { BookPage } from './pages/BookPage'
 import { KitsPage } from './pages/KitsPage'
 import { LoginPage } from './pages/LoginPage'
+import { MyCarsPage } from './pages/MyCarsPage'
 import { MyGaragePage } from './pages/MyGaragePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ServicesPage } from './pages/ServicesPage'
@@ -33,6 +34,7 @@ function App() {
             <Route element={<RequireRole role="CUSTOMER" />}>
               <Route path="my" element={<MyGaragePage />} />
               <Route path="book" element={<BookPage />} />
+              <Route path="my/cars" element={<MyCarsPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -1,7 +1,7 @@
 import { Link, type LinkProps } from 'react-router'
 import type { ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'ghost'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type Size = 'md' | 'sm'
 
 const baseClasses =
@@ -12,6 +12,7 @@ const variantClasses: Record<Variant, string> = {
   primary: 'bg-accent text-accent-ink hover:brightness-110',
   secondary: 'border border-line-strong text-ink hover:bg-raised',
   ghost: 'text-muted hover:bg-raised hover:text-ink',
+  danger: 'border border-danger/40 bg-danger-soft text-danger hover:bg-danger/15',
 }
 
 const sizeClasses: Record<Size, string> = {

@@ -33,6 +33,13 @@ export function useMyOffers() {
   })
 }
 
+// After any change, everything under 'me' is loaded again.
+// Bookings show car details too, so editing a car has to refresh them as well.
+function useRefreshMe() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: ['me'] })
+}
+
 export type BookingInput = {
   carId: number | null
   appointmentDate: string | null // "2026-11-28"; null lets the server reply "Appointment date is required"
@@ -41,14 +48,53 @@ export type BookingInput = {
 
 // Books an appointment. The server checks everything again and works out the final price and offer.
 export function useBookAppointment() {
-  const queryClient = useQueryClient()
+  const refreshMe = useRefreshMe()
   return useMutation({
     mutationFn: (input: BookingInput) =>
       apiFetch<Appointment>('/customers/me/appointments', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
-    // A new booking changes the customer's data, so everything under 'me' is loaded again
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: refreshMe,
+  })
+}
+
+export type CarInput = {
+  make: string
+  model: string
+  color: string
+  licensePlate: string // "MH12AB1234"; the server also accepts spaces, dashes and lowercase
+}
+
+export function useAddCar() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: (input: CarInput) =>
+      apiFetch<Car>('/customers/me/cars', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: refreshMe,
+  })
+}
+
+// A car id in the URL is safe: the backend only finds cars that belong to the customer in the token
+export function useUpdateCar() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: ({ id, ...input }: CarInput & { id: number }) =>
+      apiFetch<Car>(`/customers/me/cars/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: refreshMe,
+  })
+}
+
+export function useDeleteCar() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/customers/me/cars/${id}`, { method: 'DELETE' }),
+    onSuccess: refreshMe,
   })
 }

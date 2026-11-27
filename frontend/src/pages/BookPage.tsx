@@ -30,7 +30,14 @@ export function BookPage() {
       </div>
     )
   } else if (cars.data.length === 0) {
-    content = <Card><p className="text-muted">Add a car to your account before booking a service.</p></Card>
+    content = (
+      <Card>
+        <p className="text-muted">Add a car to your account before booking a service.</p>
+        <ButtonLink to="/my/cars" className="mt-4">
+          Add a car
+        </ButtonLink>
+      </Card>
+    )
   } else if (services.data.length === 0) {
     content = <Card><p className="text-muted">No services are available right now.</p></Card>
   } else {
