@@ -61,7 +61,7 @@ export function AppLayout() {
             )}
             {session?.role === 'ADMIN' && (
               <NavLink to="/admin" className={navLinkClasses}>
-                Bookings
+                Staff area
               </NavLink>
             )}
           </nav>
