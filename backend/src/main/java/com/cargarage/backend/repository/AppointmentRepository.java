@@ -24,6 +24,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     // Used to mark a customer as REPEAT once they have booked before
     long countByCustomerId(Long customerId);
 
+    // A car that has bookings can't be deleted
+    boolean existsByCarId(Long carId);
+
     // Admin dashboard: e.g. all PENDING bookings, earliest first
     List<Appointment> findByStatusOrderByAppointmentDateAsc(AppointmentStatus status);
 }
