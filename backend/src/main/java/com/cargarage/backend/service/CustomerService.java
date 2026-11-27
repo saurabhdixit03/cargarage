@@ -1,11 +1,14 @@
 package com.cargarage.backend.service;
 
+import com.cargarage.backend.dto.request.ChangePasswordRequest;
 import com.cargarage.backend.dto.request.UpdateProfileRequest;
 import com.cargarage.backend.dto.response.CustomerProfileResponse;
 import com.cargarage.backend.entity.Customer;
+import com.cargarage.backend.exception.FieldValidationException;
 import com.cargarage.backend.exception.ResourceNotFoundException;
 import com.cargarage.backend.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public CustomerProfileResponse getProfile(Long customerId) {
@@ -27,6 +31,22 @@ public class CustomerService {
         customer.setMobile(request.mobile());
         // No save() call needed: dirty checking writes the changes when the transaction commits
         return CustomerProfileResponse.from(customer);
+    }
+
+    @Transactional
+    public void changePassword(Long customerId, ChangePasswordRequest request) {
+        Customer customer = findCustomer(customerId);
+
+        // Requiring the current password means someone holding a stolen token can't lock the real owner out
+        if (!passwordEncoder.matches(request.currentPassword(), customer.getPassword())) {
+            throw new FieldValidationException("currentPassword", "Current password is incorrect");
+        }
+        // The current password was just verified, so a plain equals() is enough (no second slow BCrypt check)
+        if (request.newPassword().equals(request.currentPassword())) {
+            throw new FieldValidationException("newPassword", "New password must be different from the current one");
+        }
+
+        customer.setPassword(passwordEncoder.encode(request.newPassword()));
     }
 
     // A valid token for a deleted account would land here
