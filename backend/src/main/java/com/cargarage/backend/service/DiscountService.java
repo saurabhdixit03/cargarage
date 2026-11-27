@@ -6,12 +6,14 @@ import com.cargarage.backend.entity.AppointmentItem;
 import com.cargarage.backend.entity.Discount;
 import com.cargarage.backend.entity.GarageService;
 import com.cargarage.backend.entity.enums.CustomerType;
+import com.cargarage.backend.event.DiscountCreatedEvent;
 import com.cargarage.backend.exception.FieldValidationException;
 import com.cargarage.backend.exception.ResourceNotFoundException;
 import com.cargarage.backend.repository.CustomerRepository;
 import com.cargarage.backend.repository.DiscountRepository;
 import com.cargarage.backend.repository.GarageServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class DiscountService {
     private final DiscountRepository discountRepository;
     private final GarageServiceRepository garageServiceRepository;
     private final CustomerRepository customerRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // A discount chosen for a booking, and how much money it takes off
     public record AppliedDiscount(Discount discount, BigDecimal amount) {
@@ -89,7 +92,10 @@ public class DiscountService {
     public DiscountResponse create(DiscountRequest request) {
         Discount discount = new Discount();
         applyChanges(discount, request);
-        return DiscountResponse.from(discountRepository.save(discount));
+        Discount saved = discountRepository.save(discount);
+        // Emails go out only after this transaction commits, on a background thread (see DiscountEmailListener)
+        eventPublisher.publishEvent(new DiscountCreatedEvent(saved.getId()));
+        return DiscountResponse.from(saved);
     }
 
     @Transactional
