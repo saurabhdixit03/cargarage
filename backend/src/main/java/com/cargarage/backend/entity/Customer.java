@@ -36,8 +36,8 @@ public class Customer extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String password;
 
-        // Stored as VARCHAR (standard SQL, not a MySQL-only ENUM). Hibernate also adds a CHECK
-    // constraint listing the allowed values; update it if a new enum value is ever added.
+    // Stored as VARCHAR (standard SQL, not a MySQL-only ENUM). The migration adds a CHECK constraint
+    // listing the allowed values, so a new enum value also needs a new migration that updates it.
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "customer_type", nullable = false, length = 20)

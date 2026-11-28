@@ -83,6 +83,7 @@ The API follows a layered design: **controllers** (HTTP and validation) → **se
 - **Errors:** every error is an RFC 9457 `ProblemDetail` (`application/problem+json`), with field-level messages for validation failures.
 - **Time:** an injected `Clock` set to Asia/Kolkata defines "today" for all date rules, which keeps them consistent on any server and testable.
 - **Configuration:** all secrets and connection settings come from environment variables; none are stored in the repository.
+- **Schema:** versioned Flyway SQL migrations create and change the tables. Hibernate only validates the entity mappings against them at startup, so every schema change is an explicit, reviewable file.
 
 ## Domain model
 
@@ -104,7 +105,7 @@ Money is stored as `DECIMAL(10,2)` and handled as `BigDecimal`. Every table reco
 | Area | Technology |
 |---|---|
 | Language and framework | Java 17, Spring Boot 4.2 (Spring Web MVC) |
-| Data | Spring Data JPA, Hibernate 7, MySQL |
+| Data | Spring Data JPA, Hibernate 7, MySQL, Flyway |
 | Security | Spring Security, OAuth2 Resource Server (JWT), BCrypt |
 | Validation and errors | Jakarta Bean Validation, ProblemDetail (RFC 9457) |
 | Testing | JUnit 5, Mockito, AssertJ, MockMvc, Spring Security Test |
@@ -184,7 +185,7 @@ cd backend
 ./mvnw spring-boot:run        # on Windows: .\mvnw.cmd spring-boot:run
 ```
 
-The API runs at `http://localhost:8080`. The database tables are created automatically on first start (`ddl-auto=update`, intended for local development).
+The API runs at `http://localhost:8080`. On first start, Flyway creates the tables from the SQL migrations in `src/main/resources/db/migration`.
 
 ## Testing
 
@@ -197,7 +198,7 @@ cd backend
 |---|---|
 | Unit tests (JUnit 5, Mockito) | Discount calculation and best-offer selection; the booking state machine and date rules, using a fixed `Clock` |
 | Web layer tests (`@WebMvcTest`) | Requests through the real security configuration: 401 without a token, 403 for the wrong role, customer id taken from the token, 400 with field errors, 404 for another customer's car |
-| Application test | The full application context starting against MySQL |
+| Application test | The full application context starting against MySQL, including the Flyway migrations and Hibernate's schema validation |
 
 The application test needs `DB_PASSWORD` and `JWT_SECRET`. GitHub Actions runs the whole suite on every push against a temporary MySQL 8.4 container.
 
@@ -225,7 +226,7 @@ cargarage/
 
 - React web frontend
 - Email delivery through an SMTP provider (the notification flow is in place; messages are currently written to the application log)
-- Cloud deployment with versioned database migrations
+- Cloud deployment
 
 ## Author
 
