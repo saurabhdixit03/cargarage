@@ -70,7 +70,14 @@ export function AppLayout() {
             {session ? (
               <>
                 <span className="text-sm text-muted">
-                  {session.name}
+                  {session.role === 'CUSTOMER' ? (
+                    <Link to="/my/account" className="rounded-control underline-offset-4 hover:text-ink hover:underline">
+                      {session.name}
+                      <span className="sr-only">, account</span>
+                    </Link>
+                  ) : (
+                    session.name
+                  )}
                   {session.role === 'ADMIN' && ' · Admin'}
                 </span>
                 <Button variant="secondary" size="sm" onClick={handleLogout}>

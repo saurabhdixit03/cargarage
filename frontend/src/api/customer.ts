@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { renameSession } from '../auth/session'
 import { apiFetch } from './client'
 import type { Appointment, Car, CustomerProfile, Discount } from './types'
 
@@ -38,6 +39,39 @@ export function useMyOffers() {
 function useRefreshMe() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: ['me'] })
+}
+
+export type ProfileInput = {
+  name: string
+  mobile: string
+}
+
+// Name and mobile only: the email is the login, so the backend keeps it as it is
+export function useUpdateProfile() {
+  const refreshMe = useRefreshMe()
+  return useMutation({
+    mutationFn: (input: ProfileInput) =>
+      apiFetch<CustomerProfile>('/customers/me', {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (profile) => {
+      renameSession(profile.name) // the top bar shows the name saved at login, so it changes too
+      return refreshMe()
+    },
+  })
+}
+
+// The current password is checked again, so someone with a stolen token can't lock the owner out.
+// Tokens aren't tied to the password, so this logs nobody out: old tokens work until they expire.
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      apiFetch<void>('/customers/me/password', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  })
 }
 
 export type BookingInput = {

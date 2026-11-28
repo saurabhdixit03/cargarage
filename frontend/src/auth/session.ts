@@ -45,6 +45,13 @@ export function saveLogin(auth: AuthResponse) {
   })
 }
 
+// After a name change, the top bar shows the new name without logging in again
+export function renameSession(name: string) {
+  if (current) {
+    setSession({ ...current, name })
+  }
+}
+
 export function logout() {
   setSession(null)
 }

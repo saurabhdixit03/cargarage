@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import { RequireRole } from './auth/RequireRole'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { AppLayout } from './components/layout/AppLayout'
+import { AccountPage } from './pages/AccountPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminKitsPage } from './pages/AdminKitsPage'
 import { AdminOffersPage } from './pages/AdminOffersPage'
@@ -15,7 +16,6 @@ import { MyGaragePage } from './pages/MyGaragePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ServicesPage } from './pages/ServicesPage'
 import { SignupPage } from './pages/SignupPage'
-import { StyleGuide } from './pages/StyleGuide'
 
 // One cache for all server data. Data counts as fresh for 1 minute; a failed request is retried once.
 const queryClient = new QueryClient({
@@ -36,13 +36,13 @@ function App() {
             <Route path="facelift-kits" element={<KitsPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="signup" element={<SignupPage />} />
-            <Route path="style-guide" element={<StyleGuide />} />
 
             {/* Customers only */}
             <Route element={<RequireRole role="CUSTOMER" />}>
               <Route path="my" element={<MyGaragePage />} />
               <Route path="book" element={<BookPage />} />
               <Route path="my/cars" element={<MyCarsPage />} />
+              <Route path="my/account" element={<AccountPage />} />
             </Route>
 
             {/* Garage staff only */}
