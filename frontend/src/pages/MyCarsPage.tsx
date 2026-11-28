@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { ApiError } from '../api/client'
-import { useAddCar, useDeleteCar, useMyCars, useUpdateCar, type CarInput } from '../api/customer'
+import { useAddCar, useDeleteCar, useKitsForCar, useMyCars, useUpdateCar, type CarInput } from '../api/customer'
 import type { Car } from '../api/types'
 import { Alert } from '../components/ui/Alert'
 import { Button, ButtonLink } from '../components/ui/Button'
@@ -112,6 +113,7 @@ function CarRow({ car }: { car: Car }) {
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{car.make} {car.model}</span>
           <span className="text-sm text-muted">{car.color}</span>
+          <CarKits car={car} />
         </span>
         <span className="font-display font-semibold tracking-wider">{car.licensePlate}</span>
         {mode === 'view' && (
@@ -150,6 +152,22 @@ function CarRow({ car }: { car: Car }) {
         </div>
       )}
     </li>
+  )
+}
+
+// How many facelift kits fit this car (the backend's "kits for my car" endpoint), linking to them.
+// It's only a hint, so nothing shows while it loads or if it fails.
+function CarKits({ car }: { car: Car }) {
+  const kits = useKitsForCar(car.id)
+  if (kits.isPending || kits.isError) return null
+  if (kits.data.length === 0) {
+    return <span className="block text-sm text-muted">No facelift kits for this car yet</span>
+  }
+  const filter = new URLSearchParams({ make: car.make, model: car.model })
+  return (
+    <Link to={`/facelift-kits?${filter.toString()}`} className="block text-sm text-accent underline-offset-4 hover:underline">
+      {kits.data.length === 1 ? '1 facelift kit fits this car' : `${kits.data.length} facelift kits fit this car`}
+    </Link>
   )
 }
 

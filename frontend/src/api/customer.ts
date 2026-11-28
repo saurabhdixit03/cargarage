@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { renameSession } from '../auth/session'
 import { apiFetch } from './client'
-import type { Appointment, Car, CustomerProfile, Discount } from './types'
+import type { Appointment, Car, CustomerProfile, Discount, FaceliftKit } from './types'
 
 // The logged-in customer's own data. The backend works out who "me" is from the token,
 // so these URLs never contain a customer id. All keys start with 'me', and logging out clears them.
@@ -31,6 +31,15 @@ export function useMyOffers() {
   return useQuery({
     queryKey: ['me', 'offers'],
     queryFn: () => apiFetch<Discount[]>('/customers/me/discounts'),
+  })
+}
+
+// The kits that fit one of the customer's cars. The backend looks the car up for this customer only,
+// so another customer's car id gets a 404, as everywhere else.
+export function useKitsForCar(carId: number) {
+  return useQuery({
+    queryKey: ['me', 'cars', carId, 'kits'],
+    queryFn: () => apiFetch<FaceliftKit[]>(`/customers/me/cars/${carId}/facelift-kits`),
   })
 }
 
